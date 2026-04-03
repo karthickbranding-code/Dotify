@@ -1,0 +1,5 @@
+{
+  "name": "Doctify - Documentation Platform",
+  "description": "A full-stack documentation platform with admin management, block-based editing, and secure authentication.",
+  "requestFramePermissions": []
+}

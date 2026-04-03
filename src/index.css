@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply antialiased;
+  }
+}
+
+.prose h2 {
+  @apply text-2xl font-bold mt-8 mb-4 border-b pb-2 text-gray-900 dark:text-white;
+}
+
+.prose p {
+  @apply text-lg leading-relaxed text-gray-700 dark:text-gray-300 mb-4;
+}
+
+.prose ul, .prose ol {
+  @apply my-4 pl-6;
+}
+
+.prose li {
+  @apply mb-2;
+}
+

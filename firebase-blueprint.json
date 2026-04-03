@@ -1,0 +1,58 @@
+{
+  "entities": {
+    "Category": {
+      "title": "Category",
+      "description": "A documentation category.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "icon": { "type": "string" },
+        "description": { "type": "string" },
+        "parentId": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "A documentation page.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "blocks": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "authorId": { "type": "string" }
+      },
+      "required": ["title", "categoryId", "blocks"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user of the platform.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "editor", "viewer"] }
+      },
+      "required": ["name", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "Category" },
+      "description": "Documentation categories."
+    },
+    "/documents/{documentId}": {
+      "schema": { "$ref": "Document" },
+      "description": "Documentation pages."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User profiles and roles."
+    }
+  }
+}

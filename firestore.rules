@@ -1,0 +1,113 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: categories
+    // Fields:
+    //   - name: string (required)
+    //   - icon: string (optional)
+    //   - description: string (optional)
+    //   - parentId: string (optional)
+    //
+    // Collection: documents
+    // Fields:
+    //   - title: string (required)
+    //   - categoryId: string (required)
+    //   - blocks: list (required)
+    //   - createdAt: timestamp (required)
+    //   - updatedAt: timestamp (required)
+    //   - authorId: string (required)
+    //
+    // Collection: users
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required)
+    //   - role: string (required, 'admin'|'editor'|'viewer')
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "karthick.branding@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isEditor() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'editor' || isAdmin());
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['name']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             (!('icon' in data) || data.icon is string) &&
+             (!('description' in data) || data.description is string) &&
+             (!('parentId' in data) || data.parentId is string);
+    }
+
+    function isValidDocument(data) {
+      return data.keys().hasAll(['title', 'categoryId', 'blocks', 'createdAt', 'updatedAt', 'authorId']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.categoryId is string &&
+             data.blocks is list &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp &&
+             data.authorId is string &&
+             data.authorId == request.auth.uid;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'role']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string &&
+             data.role in ['admin', 'editor', 'viewer'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /categories/{categoryId} {
+      allow read: if true; // Publicly readable documentation structure
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /documents/{documentId} {
+      allow read: if true; // Publicly readable documentation
+      allow create: if isEditor() && isValidDocument(request.resource.data);
+      allow update: if isEditor() && isValidDocument(request.resource.data) &&
+                      (isAdmin() || resource.data.authorId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) &&
+                      ((isOwner(userId) && request.resource.data.role == 'viewer') || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) &&
+                      ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
