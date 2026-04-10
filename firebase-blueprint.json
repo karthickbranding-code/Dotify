@@ -39,6 +39,34 @@
         "role": { "type": "string", "enum": ["admin", "editor", "viewer"] }
       },
       "required": ["name", "email", "role"]
+    },
+    "Template": {
+      "title": "Template",
+      "description": "A document template.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "blocks": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "authorId": { "type": "string" }
+      },
+      "required": ["name", "blocks"]
+    },
+    "Presence": {
+      "title": "Presence",
+      "description": "User presence in a document.",
+      "type": "object",
+      "properties": {
+        "docId": { "type": "string" },
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "lastActive": { "type": "string", "format": "date-time" }
+      },
+      "required": ["docId", "userId", "lastActive"]
     }
   },
   "firestore": {
@@ -53,6 +81,14 @@
     "/users/{userId}": {
       "schema": { "$ref": "User" },
       "description": "User profiles and roles."
+    },
+    "/templates/{templateId}": {
+      "schema": { "$ref": "Template" },
+      "description": "Document templates."
+    },
+    "/presence/{presenceId}": {
+      "schema": { "$ref": "Presence" },
+      "description": "User presence tracking."
     }
   }
 }

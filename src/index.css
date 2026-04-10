@@ -1,24 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: "Inter", "Roboto", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
+:root {
+  --P: #2563eb; --P5: #3b82f6; --P4: #60a5fa; --P1: #dbeafe;
+  --ok: #10b981; --warn: #f59e0b; --err: #ef4444;
+  --g50: #f8fafc; --g100: #f1f5f9; --g200: #e2e8f0; --g300: #cbd5e1;
+  --g400: #94a3b8; --g500: #64748b; --g700: #334155; --g900: #0f172a;
+  --bg: #f8fafc; --card: #ffffff;
+  --side: #ffffff;
+  --tb-bg: rgba(255, 255, 255, 0.8);
+  --rsb-bg: #ffffff;
+  --tx: #0f172a; --tx2: #475569; --tx3: #64748b; --txd: #94a3b8;
+  --bd: #e2e8f0; --fc: #2563eb;
+  --r1: 8px; --r2: 12px; --r3: 16px; --r4: 24px;
+  --s1: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --s2: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --s3: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --lw: 280px; --rw: 300px; --th: 64px;
+}
+
+[data-theme='dark'] {
+  --bg: #0f172a; --card: #1e293b;
+  --side: #1e293b;
+  --tb-bg: rgba(30, 41, 59, 0.8);
+  --rsb-bg: #1e293b;
+  --tx: #f8fafc; --tx2: #cbd5e1; --tx3: #94a3b8; --txd: #475569; --bd: #334155;
+  --g50: #1e293b; --g100: #334155; --g200: #475569; --g300: #64748b;
+  --g400: #94a3b8; --g500: #cbd5e1; --g700: #e2e8f0; --g900: #f8fafc;
+}
 
 @layer base {
   body {
-    @apply antialiased;
+    @apply antialiased bg-[var(--bg)] text-[var(--tx)] font-sans text-[16px];
+    transition: background 150ms ease, color 150ms ease;
+    letter-spacing: -0.011em;
+    line-height: 1.6;
   }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-bold text-[var(--tx)];
+  }
+
+  h1 { @apply text-[32px] mb-8 leading-tight; }
+  h2 { @apply text-[24px] mb-6 leading-tight; }
+  h3 { @apply text-[20px] mb-4 leading-tight; }
+  h4 { @apply text-[18px] mb-3 leading-tight; }
 }
 
-.prose h2 {
-  @apply text-2xl font-bold mt-8 mb-4 border-b pb-2 text-gray-900 dark:text-white;
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--g200); }
+
+/* Utility Classes for the new design */
+.lsb-logo { height: var(--th); }
+.ni { @apply flex items-center gap-3 px-4 py-2 cursor-pointer text-[14px] text-[var(--tx2)] border-l-4 border-transparent transition-all; }
+.ni:hover { @apply bg-[var(--g100)] text-[var(--tx)]; }
+.ni.on { @apply bg-[var(--P1)] text-[var(--P)] border-l-[var(--P)] font-medium; }
+[data-theme='dark'] .ni.on { background: rgba(15,98,254,0.15); }
+
+.ncg-hd { @apply flex items-center justify-between px-4 py-2 cursor-pointer text-[14px] font-medium text-[var(--tx)] transition-colors; }
+.ncg-hd:hover { @apply bg-[var(--g100)]; }
+
+.card { @apply bg-[var(--card)] border border-[var(--bd)] p-6 shadow-[var(--s1)] transition-all; }
+.card:hover { @apply shadow-[var(--s2)]; }
+
+.dc { @apply bg-[var(--card)] border border-[var(--bd)] p-6 cursor-pointer shadow-[var(--s1)] transition-all; }
+.dc:hover { @apply shadow-[var(--s2)] border-[var(--P4)]; }
+
+.vb-heading {
+  @apply text-[24px] font-bold text-[var(--tx)] mt-12 mb-6 pb-2 border-b border-[var(--bd)] tracking-tight leading-tight;
+  scroll-margin-top: 80px;
 }
 
-.prose p {
-  @apply text-lg leading-relaxed text-gray-700 dark:text-gray-300 mb-4;
-}
+.vb-text { @apply text-[16px] leading-[1.8] text-[var(--tx)] mb-6; }
 
-.prose ul, .prose ol {
-  @apply my-4 pl-6;
-}
-
-.prose li {
-  @apply mb-2;
-}
+.prose h1 { @apply text-[32px] font-bold text-[var(--tx)] mb-8; }
+.prose h2 { @apply text-[24px] font-bold text-[var(--tx)] mt-12 mb-6 pb-2 border-b border-[var(--bd)] tracking-tight leading-tight; }
+.prose h3 { @apply text-[20px] font-bold text-[var(--tx)] mt-8 mb-4; }
+.prose p { @apply text-[16px] leading-[1.8] text-[var(--tx)] mb-6; }
+.prose ul, .prose ol { @apply my-6 space-y-2; }
+.prose li { @apply text-[16px] leading-[1.8]; }
 

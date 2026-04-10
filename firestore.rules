@@ -7,26 +7,32 @@ service cloud.firestore {
     // ===============================================================
     //
     // Collection: categories
+    // Document ID: auto-generated
     // Fields:
-    //   - name: string (required)
-    //   - icon: string (optional)
-    //   - description: string (optional)
-    //   - parentId: string (optional)
+    //   - name: string (1-100 chars) - required
+    //   - icon: string (1-50 chars) - optional
+    //   - description: string (0-500 chars) - optional
+    //   - parentId: string (valid ID) - optional
     //
     // Collection: documents
+    // Document ID: auto-generated
     // Fields:
-    //   - title: string (required)
-    //   - categoryId: string (required)
-    //   - blocks: list (required)
-    //   - createdAt: timestamp (required)
-    //   - updatedAt: timestamp (required)
-    //   - authorId: string (required)
+    //   - title: string (1-200 chars) - required
+    //   - categoryId: string (valid ID) - required
+    //   - blocks: list (max 100 blocks) - required
+    //   - createdAt: timestamp - required
+    //   - updatedAt: timestamp - required
+    //   - authorId: string (UID) - required
+    //   - icon: string (optional)
     //
     // Collection: users
+    // Document ID: UID
     // Fields:
-    //   - name: string (required)
-    //   - email: string (required)
-    //   - role: string (required, 'admin'|'editor'|'viewer')
+    //   - name: string (1-100 chars) - required
+    //   - email: string (valid email) - required
+    //   - username: string (1-50 chars) - required
+    //   - role: string ('admin'|'editor'|'viewer') - required
+    //   - company: string (optional)
     //
     // ===============================================================
 
@@ -43,7 +49,8 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
          (request.auth.token.email == "karthick.branding@gmail.com" && request.auth.token.email_verified == true));
     }
 
@@ -52,19 +59,33 @@ service cloud.firestore {
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'editor' || isAdmin());
     }
 
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // --- Domain Validators ---
+
     function isValidCategory(data) {
-      return data.keys().hasAll(['name']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             (!('icon' in data) || data.icon is string) &&
-             (!('description' in data) || data.description is string) &&
-             (!('parentId' in data) || data.parentId is string);
+      return hasRequiredFields(['name']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             (!('icon' in data) || (data.icon is string && data.icon.size() <= 50)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+             (!('parentId' in data) || (data.parentId == null || data.parentId is string));
     }
 
     function isValidDocument(data) {
-      return data.keys().hasAll(['title', 'categoryId', 'blocks', 'createdAt', 'updatedAt', 'authorId']) &&
-             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+      return hasRequiredFields(['title', 'categoryId', 'blocks', 'createdAt', 'updatedAt', 'authorId']) &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
              data.categoryId is string &&
-             data.blocks is list &&
+             data.blocks is list && data.blocks.size() <= 100 &&
              data.createdAt is timestamp &&
              data.updatedAt is timestamp &&
              data.authorId is string &&
@@ -72,10 +93,12 @@ service cloud.firestore {
     }
 
     function isValidUser(data) {
-      return data.keys().hasAll(['name', 'email', 'role']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.email is string &&
-             data.role in ['admin', 'editor', 'viewer'];
+      return hasRequiredFields(['name', 'email', 'username', 'role']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.username is string && data.username.size() > 0 && data.username.size() <= 50 &&
+             isValidEmail(data.email) &&
+             data.role in ['admin', 'editor', 'viewer'] &&
+             (!('company' in data) || (data.company is string && data.company.size() <= 100));
     }
 
     // ===============================================================
@@ -83,26 +106,40 @@ service cloud.firestore {
     // ===============================================================
 
     match /categories/{categoryId} {
-      allow read: if true; // Publicly readable documentation structure
-      allow create, update: if isAdmin();
+      allow read: if true;
+      allow create: if isAdmin() && isValidCategory(request.resource.data);
+      allow update: if isAdmin() && isValidCategory(request.resource.data);
       allow delete: if isAdmin();
     }
 
     match /documents/{documentId} {
-      allow read: if true; // Publicly readable documentation
+      allow read: if true;
       allow create: if isEditor() && isValidDocument(request.resource.data);
       allow update: if isEditor() && isValidDocument(request.resource.data) &&
-                      (isAdmin() || resource.data.authorId == request.auth.uid);
-      allow delete: if isAdmin();
+                      (isAdmin() || resource.data.authorId == request.auth.uid) &&
+                      request.resource.data.createdAt == resource.data.createdAt &&
+                      request.resource.data.authorId == resource.data.authorId;
+      allow delete: if isAdmin() || (isEditor() && resource.data.authorId == request.auth.uid);
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
+      allow read: if isAuthenticated(); // Allow users to see each other for collaboration/mentions
       allow create: if isAuthenticated() && isValidUser(request.resource.data) &&
                       ((isOwner(userId) && request.resource.data.role == 'viewer') || isAdmin());
       allow update: if isAuthenticated() && isValidUser(request.resource.data) &&
                       ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
       allow delete: if isAdmin();
+    }
+
+    match /templates/{templateId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /presence/{presenceId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && (presenceId.endsWith(request.auth.uid) || presenceId == request.auth.uid);
     }
 
     // Default deny
